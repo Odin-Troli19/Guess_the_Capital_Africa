@@ -1,3 +1,4 @@
+
 import tkinter as tk
 from tkinter import messagebox, ttk
 import random
@@ -859,8 +860,29 @@ class CapitalGame:
         return options
 
 n"
+    def check_answer(self, answer):
+        self.stop_timer()
+        
+        if answer == self.current_question['capital']:
+            self.score += 1
+            self.score_label.config(text=f"Score: {self.score}/{self.total_questions}")
+            
+            # Calculate points based on time remaining and difficulty
+            time_bonus = self.time_remaining
+            diff_multiplier = {"easy": 1, "medium": 1.5, "hard": 2, "expert": 3}[self.difficulty]
+            points = int(10 + (time_bonus * diff_multiplier))
+            
+            # Show success message with detailed info
+            info = self.current_question
+            messagebox.showinfo(
+                "Correct!",
+                f"Correct! 🎉 +{points} points\n\n"
+                f"Country: {info['name']} {info['flag']}\n"
+                f"Capital: {info['capital']}\n"
+                f"Population: {info['population']}\n"
+                f"Independence: {info['independence']}\n"
                 f"President: {info['president']}\n"
-                f"Currency: {info['currency']}\n"  # Added currency info
+                f"Currency: {info['currency']}\n"
                 f"Official Language: {info['language']}\n"
                 f"Fact: {info['facts']}"
             )
