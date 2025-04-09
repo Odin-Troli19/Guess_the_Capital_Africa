@@ -614,7 +614,6 @@ countries = [
     "facts": "Liberia was founded by freed American slaves and is Africa's oldest republic."
   }
 ]
-
 class CapitalGame:
     def __init__(self, root):
         self.root = root
@@ -705,20 +704,6 @@ class CapitalGame:
         self.reset_button = ttk.Button(self.root, text="Reset Game", command=self.reset_game)
         self.reset_button.pack(pady=10)
 
-    def set_difficulty(self, difficulty):
-        self.difficulty = difficulty
-        if difficulty == "easy":
-            self.time_limit = 20
-        elif difficulty == "medium":
-            self.time_limit = 15
-        elif difficulty == "hard":
-            self.time_limit = 10
-        elif difficulty == "expert":
-            self.time_limit = 5
-            
-        self.status_bar.config(text=f"Difficulty: {difficulty.capitalize()}, Time limit: {self.time_limit} seconds")
-        self.next_question()
-        
     def set_difficulty(self, difficulty):
         self.difficulty = difficulty
         if difficulty == "easy":
@@ -859,7 +844,6 @@ class CapitalGame:
         random.shuffle(options)
         return options
 
-n"
     def check_answer(self, answer):
         self.stop_timer()
         
