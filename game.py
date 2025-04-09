@@ -1,6 +1,8 @@
 import tkinter as tk
-from tkinter import messagebox
+from tkinter import messagebox, ttk
 import random
+import time
+import threading
 
 # Sample African country data (add more later)
 countries = [
@@ -616,106 +618,284 @@ class CapitalGame:
     def __init__(self, root):
         self.root = root
         self.root.title("Guess the Capital - Africa")
+        self.root.geometry("600x500")  # Set a larger default size
         self.score = 0
+        self.total_questions = 0
         self.current_question = None
-        self.mode = None
-
+        self.difficulty = "easy"
+        self.time_limit = 20  # Default time limit in seconds
+        self.time_remaining = 0
+        self.timer_running = False
+        self.timer_thread = None
+        
+        # Create style for ttk widgets
+        self.style = ttk.Style()
+        self.style.configure("TButton", font=("Helvetica", 11))
+        self.style.configure("TLabel", font=("Helvetica", 11))
+        
         self.setup_widgets()
 
     def setup_widgets(self):
-        self.frame = tk.Frame(self.root, padx=20, pady=20)
-        self.frame.pack()
+        self.frame = ttk.Frame(self.root, padding=20)
+        self.frame.pack(fill=tk.BOTH, expand=True)
 
-        self.name_label = tk.Label(self.frame, text="What's your name?")
-        self.name_label.pack()
+        # Title
+        title_label = ttk.Label(self.frame, text="African Capitals Challenge", font=("Helvetica", 16, "bold"))
+        title_label.pack(pady=10)
 
-        self.name_entry = tk.Entry(self.frame)
-        self.name_entry.pack()
+        # Name input
+        name_frame = ttk.Frame(self.frame)
+        name_frame.pack(pady=10)
+        
+        self.name_label = ttk.Label(name_frame, text="What's your name?")
+        self.name_label.pack(side=tk.LEFT, padx=5)
 
-        self.start_button = tk.Button(self.frame, text="Start Game", command=self.start_game)
-        self.start_button.pack()
+        self.name_entry = ttk.Entry(name_frame, width=20)
+        self.name_entry.pack(side=tk.LEFT, padx=5)
 
-        self.score_label = tk.Label(self.root, text="Score: 0", font=("Helvetica", 12))
-        self.score_label.pack()
+        # Start button
+        self.start_button = ttk.Button(self.frame, text="Start Game", command=self.start_game)
+        self.start_button.pack(pady=10)
+
+        # Score and timer display
+        stats_frame = ttk.Frame(self.root)
+        stats_frame.pack(fill=tk.X, padx=20, pady=5)
+        
+        self.score_label = ttk.Label(stats_frame, text="Score: 0/0", font=("Helvetica", 12))
+        self.score_label.pack(side=tk.LEFT)
+        
+        self.timer_label = ttk.Label(stats_frame, text="Time: --", font=("Helvetica", 12))
+        self.timer_label.pack(side=tk.RIGHT)
+        
+        # Status bar at the bottom
+        self.status_bar = ttk.Label(self.root, text="Ready to play", relief=tk.SUNKEN, anchor=tk.W)
+        self.status_bar.pack(side=tk.BOTTOM, fill=tk.X)
 
     def start_game(self):
         self.player_name = self.name_entry.get()
         if not self.player_name:
             messagebox.showwarning("Input needed", "Please enter your name.")
             return
+        
         self.clear_frame()
-        greeting = tk.Label(self.frame, text=f"Hi {self.player_name}, welcome!", font=("Helvetica", 14))
-        greeting.pack()
+        greeting = ttk.Label(self.frame, text=f"Hi {self.player_name}, welcome!", font=("Helvetica", 14, "bold"))
+        greeting.pack(pady=10)
 
-        start_msg = tk.Label(self.frame, text="Choose how you want to play:", pady=10)
-        start_msg.pack()
+        # Difficulty selection
+        diff_label = ttk.Label(self.frame, text="Select difficulty level:", pady=5)
+        diff_label.pack(pady=10)
 
-        btn1 = tk.Button(self.frame, text="Choose by country name", command=lambda: self.set_mode("name"))
-        btn1.pack(pady=5)
+        diff_frame = ttk.Frame(self.frame)
+        diff_frame.pack(pady=5)
+        
+        easy_btn = ttk.Button(diff_frame, text="Easy (20s)", command=lambda: self.set_difficulty("easy"))
+        easy_btn.pack(side=tk.LEFT, padx=5)
+        
+        medium_btn = ttk.Button(diff_frame, text="Medium (15s)", command=lambda: self.set_difficulty("medium"))
+        medium_btn.pack(side=tk.LEFT, padx=5)
+        
+        hard_btn = ttk.Button(diff_frame, text="Hard (10s)", command=lambda: self.set_difficulty("hard"))
+        hard_btn.pack(side=tk.LEFT, padx=5)
+        
+        expert_btn = ttk.Button(diff_frame, text="Expert (5s)", command=lambda: self.set_difficulty("expert"))
+        expert_btn.pack(side=tk.LEFT, padx=5)
 
-        btn2 = tk.Button(self.frame, text="Choose by flag", command=lambda: self.set_mode("flag"))
-        btn2.pack(pady=5)
-
-        self.reset_button = tk.Button(self.root, text="Reset Game", command=self.reset_game)
+        # Reset button
+        self.reset_button = ttk.Button(self.root, text="Reset Game", command=self.reset_game)
         self.reset_button.pack(pady=10)
 
-    def set_mode(self, mode):
-        self.mode = mode
+    def set_difficulty(self, difficulty):
+        self.difficulty = difficulty
+        if difficulty == "easy":
+            self.time_limit = 20
+        elif difficulty == "medium":
+            self.time_limit = 15
+        elif difficulty == "hard":
+            self.time_limit = 10
+        elif difficulty == "expert":
+            self.time_limit = 5
+            
+        self.status_bar.config(text=f"Difficulty: {difficulty.capitalize()}, Time limit: {self.time_limit} seconds")
+        self.next_question()
+        
+    def set_difficulty(self, difficulty):
+        self.difficulty = difficulty
+        if difficulty == "easy":
+            self.time_limit = 20
+        elif difficulty == "medium":
+            self.time_limit = 15
+        elif difficulty == "hard":
+            self.time_limit = 10
+        elif difficulty == "expert":
+            self.time_limit = 5
+            
+        self.status_bar.config(text=f"Difficulty: {difficulty.capitalize()}, Time limit: {self.time_limit} seconds")
+        self.next_question()
+
+    def start_timer(self):
+        self.timer_running = True
+        self.time_remaining = self.time_limit
+        
+        def update_timer():
+            while self.timer_running and self.time_remaining > 0:
+                self.timer_label.config(text=f"Time: {self.time_remaining}s")
+                time.sleep(1)
+                self.time_remaining -= 1
+                
+            if self.timer_running and self.time_remaining <= 0:
+                # Time's up
+                self.root.after(0, self.time_up)
+        
+        self.timer_thread = threading.Thread(target=update_timer)
+        self.timer_thread.daemon = True  # Thread will exit when main program exits
+        self.timer_thread.start()
+
+    def stop_timer(self):
+        self.timer_running = False
+        if self.timer_thread:
+            # Allow the thread to finish
+            if self.timer_thread.is_alive():
+                self.timer_thread.join(0.1)
+
+    def time_up(self):
+        if not self.timer_running:
+            return
+            
+        self.stop_timer()
+        messagebox.showinfo("Time's Up!", f"Time's up! The correct answer was {self.current_question['capital']}.")
         self.next_question()
 
     def next_question(self):
+        self.stop_timer()
         self.clear_frame()
         self.current_question = random.choice(countries)
+        self.total_questions += 1
+        
+        # Update the score display
+        self.score_label.config(text=f"Score: {self.score}/{self.total_questions-1}")
 
-        question_text = (
-            f"What is the capital of {self.current_question['name']}?"
-            if self.mode == "name" else
-            f"What is the capital of this country? {self.current_question['flag']}"
-        )
-        tk.Label(self.frame, text=question_text, font=("Helvetica", 12), wraplength=300).pack(pady=10)
+        # Create a frame for the question
+        question_frame = ttk.Frame(self.frame)
+        question_frame.pack(pady=10, fill=tk.X)
+        
+        # Display the question with country name and flag emoji
+        question_text = f"What is the capital of {self.current_question['name']} {self.current_question['flag']}?"
+        ttk.Label(question_frame, text=question_text, font=("Helvetica", 12)).pack(pady=5)
 
-        # Shuffle options
-        options = [self.current_question['capital']]
-        while len(options) < 4:
-            option = random.choice(countries)['capital']
+        # Get options based on difficulty
+        options = self.get_options_by_difficulty()
+        
+        # Create options frame
+        options_frame = ttk.Frame(self.frame)
+        options_frame.pack(pady=10, fill=tk.X)
+        
+        # Create a grid of buttons
+        row, col = 0, 0
+        for option in options:
+            btn = ttk.Button(options_frame, text=option, 
+                          command=lambda opt=option: self.check_answer(opt), 
+                          width=20)
+            btn.grid(row=row, column=col, padx=5, pady=5, sticky=tk.W+tk.E)
+            col += 1
+            if col > 1:  # 2 columns
+                col = 0
+                row += 1
+                
+        # Show additional information based on difficulty
+        info_frame = ttk.Frame(self.frame)
+        info_frame.pack(pady=10, fill=tk.X)
+        
+        if self.difficulty == "easy":
+            hint_text = f"Hint: The capital starts with '{self.current_question['capital'][0]}'"
+            ttk.Label(info_frame, text=hint_text, font=("Helvetica", 10, "italic")).pack()
+        
+        # Start the timer
+        self.start_timer()
+
+    def get_options_by_difficulty(self):
+        # The correct answer
+        correct_capital = self.current_question['capital']
+        
+        # Create different numbers of options based on difficulty
+        if self.difficulty == "easy":
+            num_options = 3
+        elif self.difficulty == "medium":
+            num_options = 4
+        elif self.difficulty == "hard":
+            num_options = 5
+        else:  # expert
+            num_options = 6
+            
+        # Generate options
+        options = [correct_capital]
+        
+        # For harder difficulties, add similar-sounding capitals to make it more challenging
+        all_capitals = [country['capital'] for country in countries]
+        
+        # Sort capitals by similarity to the correct answer
+        # For simplicity, we'll just use the first letter as a rough measure of similarity
+        similar_capitals = [cap for cap in all_capitals 
+                           if cap != correct_capital and cap[0] == correct_capital[0]]
+        
+        other_capitals = [cap for cap in all_capitals 
+                         if cap != correct_capital and cap not in similar_capitals]
+        
+        # Add similar capitals first if they exist
+        while len(options) < num_options and similar_capitals:
+            option = random.choice(similar_capitals)
             if option not in options:
                 options.append(option)
+                similar_capitals.remove(option)
+                
+        # Fill the rest with random capitals
+        while len(options) < num_options and other_capitals:
+            option = random.choice(other_capitals)
+            if option not in options:
+                options.append(option)
+                other_capitals.remove(option)
+                
+        # Shuffle the options
         random.shuffle(options)
+        return options
 
-        for option in options:
-            tk.Button(self.frame, text=option, command=lambda opt=option: self.check_answer(opt)).pack(pady=2)
-
-    def check_answer(self, answer):
-        if answer == self.current_question['capital']:
-            self.score += 1
-            self.score_label.config(text=f"Score: {self.score}")
-            info = self.current_question
-            messagebox.showinfo(
-                "Correct!",
-                f"Correct! 🎉\n\n"
-                f"Country: {info['name']} {info['flag']}\n"
-                f"Capital: {info['capital']}\n"
-                f"Population: {info['population']}\n"
-                f"Independence: {info['independence']}\n"
+n"
                 f"President: {info['president']}\n"
+                f"Currency: {info['currency']}\n"  # Added currency info
                 f"Official Language: {info['language']}\n"
                 f"Fact: {info['facts']}"
             )
         else:
             messagebox.showerror("Wrong!", f"Oops! The correct answer was {self.current_question['capital']}.")
+        
         self.next_question()
 
     def reset_game(self):
+        self.stop_timer()
         self.score = 0
-        self.score_label.config(text="Score: 0")
+        self.total_questions = 0
+        self.score_label.config(text="Score: 0/0")
+        self.timer_label.config(text="Time: --")
+        self.status_bar.config(text="Ready to play")
+        
+        # Clear and recreate the frame
         self.frame.destroy()
+        self.frame = ttk.Frame(self.root, padding=20)
+        self.frame.pack(fill=tk.BOTH, expand=True)
+        
         self.setup_widgets()
 
     def clear_frame(self):
         for widget in self.frame.winfo_children():
             widget.destroy()
 
+# Function to handle application closing
+def on_closing():
+    if messagebox.askokcancel("Quit", "Do you want to quit the game?"):
+        root.destroy()
+
 # Start the app
-root = tk.Tk()
-app = CapitalGame(root)
-root.mainloop()
+if __name__ == "__main__":
+    root = tk.Tk()
+    app = CapitalGame(root)
+    root.protocol("WM_DELETE_WINDOW", on_closing)  # Handle window closing
+    root.mainloop()
