@@ -626,7 +626,7 @@ class CapitalGame:
         self.time_limit = 20  # Default time limit in seconds
         self.time_remaining = 0
         self.timer_running = False
-        self.timer_thread = None
+        self.timer_id = None  # For storing the after() ID
         
         # Create style for ttk widgets
         self.style = ttk.Style()
@@ -682,8 +682,8 @@ class CapitalGame:
         greeting.pack(pady=10)
 
         # Difficulty selection
-        diff_label = ttk.Label(self.frame, text="Select difficulty level:", pady=5)
-        diff_label.pack(pady=10)
+        diff_label = ttk.Label(self.frame, text="Select difficulty level:")
+        diff_label.pack(pady=10)  # padding is applied to pack() not to the Label itself
 
         diff_frame = ttk.Frame(self.frame)
         diff_frame.pack(pady=5)
@@ -721,35 +721,40 @@ class CapitalGame:
     def start_timer(self):
         self.timer_running = True
         self.time_remaining = self.time_limit
+        self.timer_label.config(text=f"Time: {self.time_remaining}s")
         
         def update_timer():
-            while self.timer_running and self.time_remaining > 0:
-                self.timer_label.config(text=f"Time: {self.time_remaining}s")
-                time.sleep(1)
-                self.time_remaining -= 1
+            if not self.timer_running:
+                return
                 
-            if self.timer_running and self.time_remaining <= 0:
+            if self.time_remaining > 0:
+                self.time_remaining -= 1
+                self.timer_label.config(text=f"Time: {self.time_remaining}s")
+                # Schedule the next update using after()
+                self.timer_id = self.root.after(1000, update_timer)
+            else:
                 # Time's up
-                self.root.after(0, self.time_up)
+                self.time_up()
         
-        self.timer_thread = threading.Thread(target=update_timer)
-        self.timer_thread.daemon = True  # Thread will exit when main program exits
-        self.timer_thread.start()
+        # Start the timer using Tkinter's after() method
+        self.timer_id = self.root.after(1000, update_timer)
 
     def stop_timer(self):
         self.timer_running = False
-        if self.timer_thread:
-            # Allow the thread to finish
-            if self.timer_thread.is_alive():
-                self.timer_thread.join(0.1)
+        # Cancel any pending timer events
+        if self.timer_id:
+            self.root.after_cancel(self.timer_id)
+            self.timer_id = None
 
     def time_up(self):
         if not self.timer_running:
             return
             
         self.stop_timer()
+        # Show the message in the main thread
         messagebox.showinfo("Time's Up!", f"Time's up! The correct answer was {self.current_question['capital']}.")
-        self.next_question()
+        # Schedule the next question
+        self.root.after(100, self.next_question)
 
     def next_question(self):
         self.stop_timer()
@@ -793,7 +798,8 @@ class CapitalGame:
         
         if self.difficulty == "easy":
             hint_text = f"Hint: The capital starts with '{self.current_question['capital'][0]}'"
-            ttk.Label(info_frame, text=hint_text, font=("Helvetica", 10, "italic")).pack()
+            hint_label = ttk.Label(info_frame, text=hint_text, font=("Helvetica", 10, "italic"))
+            hint_label.pack()
         
         # Start the timer
         self.start_timer()
