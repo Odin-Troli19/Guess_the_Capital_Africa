@@ -3,7 +3,6 @@ import tkinter as tk
 from tkinter import messagebox, ttk
 import random
 import time
-import threading
 
 
 countries = [
@@ -621,6 +620,7 @@ class CapitalGame:
         self.root.geometry("600x500")  # Set a larger default size
         self.score = 0
         self.total_questions = 0
+        self.max_questions = 15  # Set maximum number of questions to 15
         self.current_question = None
         self.difficulty = "easy"
         self.time_limit = 20  # Default time limit in seconds
@@ -661,7 +661,7 @@ class CapitalGame:
         stats_frame = ttk.Frame(self.root)
         stats_frame.pack(fill=tk.X, padx=20, pady=5)
         
-        self.score_label = ttk.Label(stats_frame, text="Score: 0/0", font=("Helvetica", 12))
+        self.score_label = ttk.Label(stats_frame, text=f"Score: 0/0 (Question 0/{self.max_questions})", font=("Helvetica", 12))
         self.score_label.pack(side=tk.LEFT)
         
         self.timer_label = ttk.Label(stats_frame, text="Time: --", font=("Helvetica", 12))
@@ -759,11 +759,17 @@ class CapitalGame:
     def next_question(self):
         self.stop_timer()
         self.clear_frame()
+        
+        # Check if we've reached the maximum number of questions
+        if self.total_questions >= self.max_questions:
+            self.show_game_summary()
+            return
+        
         self.current_question = random.choice(countries)
         self.total_questions += 1
         
         # Update the score display
-        self.score_label.config(text=f"Score: {self.score}/{self.total_questions-1}")
+        self.score_label.config(text=f"Score: {self.score}/{self.total_questions-1} (Question {self.total_questions}/{self.max_questions})")
 
         # Create a frame for the question
         question_frame = ttk.Frame(self.frame)
@@ -803,6 +809,69 @@ class CapitalGame:
         
         # Start the timer
         self.start_timer()
+        
+    def show_game_summary(self):
+        """Display a summary screen at the end of the game"""
+        summary_frame = ttk.Frame(self.frame)
+        summary_frame.pack(pady=20, fill=tk.BOTH, expand=True)
+        
+        # Display score and congratulatory message
+        accuracy = (self.score / self.max_questions) * 100
+        
+        title_label = ttk.Label(
+            summary_frame, 
+            text="Game Over!", 
+            font=("Helvetica", 18, "bold")
+        )
+        title_label.pack(pady=10)
+        
+        score_label = ttk.Label(
+            summary_frame,
+            text=f"You got {self.score} out of {self.max_questions} answers correct!",
+            font=("Helvetica", 14)
+        )
+        score_label.pack(pady=5)
+        
+        accuracy_label = ttk.Label(
+            summary_frame,
+            text=f"Accuracy: {accuracy:.1f}%",
+            font=("Helvetica", 12)
+        )
+        accuracy_label.pack(pady=5)
+        
+        if accuracy >= 80:
+            message = "Excellent! You're an African geography expert!"
+        elif accuracy >= 60:
+            message = "Well done! You know Africa quite well!"
+        elif accuracy >= 40:
+            message = "Good job! You're learning about African capitals."
+        else:
+            message = "Keep practicing to improve your knowledge of African capitals!"
+            
+        feedback_label = ttk.Label(
+            summary_frame,
+            text=message,
+            font=("Helvetica", 12)
+        )
+        feedback_label.pack(pady=10)
+        
+        # Buttons to play again or exit
+        button_frame = ttk.Frame(summary_frame)
+        button_frame.pack(pady=20)
+        
+        play_again_btn = ttk.Button(
+            button_frame, 
+            text="Play Again", 
+            command=self.reset_game
+        )
+        play_again_btn.pack(side=tk.LEFT, padx=10)
+        
+        exit_btn = ttk.Button(
+            button_frame, 
+            text="Exit Game", 
+            command=lambda: self.root.destroy()
+        )
+        exit_btn.pack(side=tk.LEFT, padx=10)
 
     def get_options_by_difficulty(self):
         # The correct answer
@@ -855,7 +924,7 @@ class CapitalGame:
         
         if answer == self.current_question['capital']:
             self.score += 1
-            self.score_label.config(text=f"Score: {self.score}/{self.total_questions}")
+            self.score_label.config(text=f"Score: {self.score}/{self.total_questions} (Question {self.total_questions}/{self.max_questions})")
             
             # Calculate points based on time remaining and difficulty
             time_bonus = self.time_remaining
@@ -885,7 +954,7 @@ class CapitalGame:
         self.stop_timer()
         self.score = 0
         self.total_questions = 0
-        self.score_label.config(text="Score: 0/0")
+        self.score_label.config(text=f"Score: 0/0 (Question 0/{self.max_questions})")
         self.timer_label.config(text="Time: --")
         self.status_bar.config(text="Ready to play")
         
