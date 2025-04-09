@@ -878,8 +878,9 @@ class CapitalGame:
         correct_capital = self.current_question['capital']
         
         # Create different numbers of options based on difficulty
+        # Now we'll always have 4 options minimum, but can add more for harder levels
         if self.difficulty == "easy":
-            num_options = 3
+            num_options = 4  # Changed from 3 to 4
         elif self.difficulty == "medium":
             num_options = 4
         elif self.difficulty == "hard":
