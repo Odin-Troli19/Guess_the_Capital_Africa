@@ -4,7 +4,7 @@ import random
 import time
 import threading
 
-# Sample African country data (add more later)
+
 countries = [
     # African Countries Complete Data
   {
