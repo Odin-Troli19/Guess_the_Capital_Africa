@@ -1,0 +1,24 @@
+# African Capitals Quiz - Enhanced Edition
+# Requirements File
+
+# This project uses only Python standard library
+# No external dependencies are required
+
+# Minimum Python version: 3.7+
+
+# Standard library modules used:
+# - tkinter (GUI framework - comes pre-installed with Python)
+# - random (for shuffling questions and options)
+# - time (for timer functionality)
+# - json (for data persistence)
+# - os (for file operations)
+# - datetime (for timestamp tracking)
+
+# To verify your Python installation has tkinter:
+# python -m tkinter
+
+# If tkinter is not installed (rare), install with:
+# Ubuntu/Debian: sudo apt-get install python3-tk
+# Fedora: sudo dnf install python3-tkinter
+# macOS: tkinter comes with Python installation
+# Windows: tkinter comes with Python installation
